@@ -1,0 +1,144 @@
+/***
+    ESP-01 based button for custom network based action, on physical event
+    Copyright (C) 2024  PitcherSeven (pitcher.seven@mailbox.org)
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+***/
+
+#include <ESP8266WiFi.h>
+#include <ESP8266HTTPClient.h>
+#include <WiFiClient.h>
+
+const int LED_OUT = 2;
+const int BUTTON_IN = 0;
+const char* ssid = "YOUR_SSID";
+const char* password = "YOUR_WIFI_PASS";
+
+int currentButtonState;
+int lastButtonState = LOW;
+
+long lastButtonChangeTime = 0;
+// the time needed, that a push is respected as actual button press (to prevent technical errors)
+long buttonChangeDelay = 50;
+
+void setup() {
+  // Init GPIO pins
+  pinMode(LED_OUT, OUTPUT);
+  pinMode(BUTTON_IN, INPUT);
+  // Initially turn of LED
+  digitalWrite(LED_OUT, LOW);
+}
+
+void loop() {
+  int reading = digitalRead(BUTTON_IN);
+
+  if (reading != lastButtonState) {
+    lastButtonChangeTime = millis();
+  }
+
+  if ((millis() - lastButtonChangeTime) > buttonChangeDelay) {
+    // Here the button really has been pushed or released
+    if (reading != currentButtonState) {
+      currentButtonState = reading;
+
+      // When pin is HIGH, we know that action needs to be triggered
+      if (currentButtonState == HIGH) {
+        button_pressed();
+		// Reset timer
+		lastButtonChangeTime = 0;
+      }
+    }
+  }
+
+  // save the reading at end
+  lastButtonState = reading;
+}
+
+/***
+The action executed, when button is physically pushed
+***/
+void button_pressed(){
+  connect_wifi();
+  if(WiFi.status() != WL_CONNECTED){
+    blink_err();
+    return;
+  }
+
+  // Light up LED while acting
+  digitalWrite(LED_OUT, HIGH);
+  button_action();
+  // Disconnect WiFi since not required anymore
+  WiFi.disconnect();
+  digitalWrite(LED_OUT, LOW);
+}
+
+/***
+The method representing the actual action 
+after button is pushed and network is connected
+***/
+void button_action(){
+  /*
+  TODO: Here comes your code, that needs to be executed when button is pushed
+  */
+}
+
+/***
+ Sets the WiFi mode to WIFI_STA and tries to
+ connect to pre-configured WiFi. While connecting, the LED
+ blinks with delay of 500ms 
+***/
+void connect_wifi(){
+  /* Explicitly set the ESP01(S) to be a WiFi-client, otherwise, it by default,
+     would try to act as both a client and an access-point and could cause
+     network-issues with your other WiFi-devices on your WiFi-network. */
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+
+  int status = HIGH;
+  while (WiFi.status() != WL_CONNECTED) {
+    digitalWrite(LED_OUT, status);
+    delay(500);
+    status = toggle_status(status);
+  }
+  digitalWrite(LED_OUT, LOW);
+  delay(300);
+}
+
+/***
+Method to blink 3 times wild (error)
+***/
+void blink_err(){
+  digitalWrite(LED_OUT, LOW);
+  int blinkCount = 0;
+  int status = HIGH;
+  while(blinkCount < 6){
+    digitalWrite(LED_OUT, status);
+    delay(300);
+    status = toggle_status(status);
+    blinkCount += 1;
+  }
+  digitalWrite(LED_OUT, LOW);
+}
+
+/***
+Toggles given GPIO status to its oposite value
+***/
+int toggle_status(int status){
+  if(status == HIGH){
+      return LOW;
+  }
+  else{
+      return HIGH;
+  }
+}
