@@ -40,6 +40,24 @@ While being idle, the program only reads GPIO _0_ over and over again. When a bu
 
 The program responds to a push, when pin was set HIGH for over _buttonChangeDelay_(50ms). If you encounter problems with that, you can either increase or decrease this delay.
 
+## Known issues
+
+On some routers, the disconnection in the end makes problems leading to errors on re-connect, like
+
+`IEEE 802.11: did not acknowledge authentication response`
+
+The reasons still are not absolutely clear, but its determined, it must have to do something with IEEE 802.11b standard. A couple of days were spent, to find solutions, but only approaches were found, so code is being left unchanged here.
+
+On some routers, there is the option `Allow legacy 802.11b rates` or something. This could be a approach, but on local tests, both, enabled and disabled, seems to work, when changing code like below:
+
+```
+WiFi.persistent(false);
+
+WiFi.setHostname(BUTTON_HOSTNAME);
+
+WiFi.setPhyMode(WIFI_PHY_MODE_11B);
+```
+
 ## DISCLAIMER
 
 YOU AS A PERSON ARE RESPONSIBLE, WHEN WORKING WITH ELECTRONIC DEVICES, INCLUDING SOLDERING DEVICES, ELECTRONIC VOLTAGES AND ELECTRONICAL CURRENTS. THE PROJECT MAINTAINERS ARE NOT RESPONSIBLE OR LIABLE FOR WRONG OR CHANGED INFORMATION, INAPPROPIATE WORKING MATERIAL, DAMAGES ON YOUR ESP-01 DEVICES OR INJURIES ON YOUR WORK-SIDE.
